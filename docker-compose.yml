@@ -2,8 +2,8 @@ version: '3.9'
 
 services:
   mysql:
-    image: mysql:8.0-alpine
-    container_name: mysql-db
+    image: mysql:8.0
+    container_name: mysql-db1
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: innovatech_db
@@ -14,7 +14,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - innovatech-network
+      - innovatech2-network
 
   backend-despachos:
     build:
@@ -31,7 +31,7 @@ services:
     depends_on:
       - mysql
     networks:
-      - innovatech-network
+      - innovatech2-network
 
   backend-ventas:
     build:
@@ -48,7 +48,7 @@ services:
     depends_on:
       - mysql
     networks:
-      - innovatech-network
+      - innovatech2-network
 
   frontend-despacho:
     build:
@@ -60,12 +60,12 @@ services:
     depends_on:
       - backend-despachos
     networks:
-      - innovatech-network
+      - innovatech2-network
 
 volumes:
   mysql_data:
     driver: local
 
 networks:
-  innovatech-network:
+  innovatech2-network:
     driver: bridge
