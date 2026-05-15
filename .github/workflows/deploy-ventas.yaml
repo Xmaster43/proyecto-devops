@@ -39,5 +39,5 @@ jobs:
               "docker pull ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-v1",
               "docker stop ventas-api || true",
               "docker rm ventas-api || true",
-              "docker run -d --name ventas-api -p 8082:8080 -e SPRING_DATASOURCE_URL=jdbc:mysql://10.0.8.89:3306/innovatech_db -e SPRING_DATASOURCE_USERNAME=admin -e SPRING_DATASOURCE_PASSWORD=admin123 ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-v1"
+              "docker run -d --name ventas-api -p 8082:8082 -e SPRING_DATASOURCE_URL=jdbc:mysql://10.0.8.89:3306/innovatech_db -e SPRING_DATASOURCE_USERNAME=admin -e SPRING_DATASOURCE_PASSWORD=admin123 ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-v1"
             ]}'
