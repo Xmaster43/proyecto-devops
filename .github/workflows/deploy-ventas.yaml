@@ -27,7 +27,7 @@ jobs:
       # Construimos usando el prefijo ventas- para no borrar la imagen de ventas
       - name: Build y Push Imagen
         run: |
-          docker build -t ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-${{ github.sha }} ./back-Ventas_SpringBoot/Springboot-API-REST-VENTAS
+          docker build -t ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-${{ github.sha }} ./back-Ventas_SpringBoot/Springboot-API-REST
           docker push ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-${{ github.sha }}
 
       - name: Desplegar en Amazon EKS
