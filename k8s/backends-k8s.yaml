@@ -1,0 +1,97 @@
+# ==========================================
+# 1. MICROSERVICIO DE VENTAS
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ventas-api
+spec:
+  replicas: 2 # ¡Tendremos 2 copias corriendo para alta disponibilidad!
+  selector:
+    matchLabels:
+      app: ventas
+  template:
+    metadata:
+      labels:
+        app: ventas
+    spec:
+      containers:
+      - name: ventas-api
+        # NOTA: Aquí pondrás la URL real de tu ECR cuando lo despliegues
+        image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-backend:ventas-v1
+        ports:
+        - containerPort: 8082
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql-service:3306/innovatech_db"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ventas-service # Nombre interno para que el Nginx lo encuentre
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+  selector:
+    app: ventas
+
+# ==========================================
+# 2. MICROSERVICIO DE DESPACHOS
+# ==========================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: despachos-api
+spec:
+  replicas: 2 # 2 copias para que no se caiga si un pod falla
+  selector:
+    matchLabels:
+      app: despachos
+  template:
+    metadata:
+      labels:
+        app: despachos
+    spec:
+      containers:
+      - name: despachos-api
+        image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-backend:despachos-v1
+        ports:
+        - containerPort: 8081
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql-service:3306/innovatech_db"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: despachos-service # Nombre interno
+spec:
+  ports:
+    - port: 8081
+      targetPort: 8081
+  selector:
+    app: despachos
