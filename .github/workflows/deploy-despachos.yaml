@@ -1,4 +1,4 @@
-name: CI/CD - Backend Despachos
+name: CI/CD - Backend Despachos (Kubernetes)
 
 on:
   push:
@@ -24,20 +24,16 @@ jobs:
       - name: Login en Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build y Push Imagen (Etiqueta despachos-v1)
+      # Construimos usando el prefijo despachos- para no borrar la imagen de ventas
+      - name: Build y Push Imagen
         run: |
-          docker build -t ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-v1 ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
-          docker push ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-v1
+          docker build -t ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-${{ github.sha }} ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
+          docker push ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-${{ github.sha }}
 
-      - name: Desplegar en EC2 Backend vía SSM
+      - name: Desplegar en Amazon EKS
         run: |
-          aws ssm send-command \
-            --instance-ids ${{ secrets.EC2_BACKEND_INSTANCE_ID }} \
-            --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":[
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-              "docker pull ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-v1",
-              "docker stop despachos-api || true",
-              "docker rm despachos-api || true",
-              "docker run -d --name despachos-api -p 8081:8081 -e SPRING_DATASOURCE_URL=jdbc:mysql://10.0.8.89:3306/innovatech_db -e SPRING_DATASOURCE_USERNAME=admin -e SPRING_DATASOURCE_PASSWORD=admin123 ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-v1"
-            ]}'
+          # Autenticación con el clúster
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+          
+          # Actualizar el deployment de Despachos
+          kubectl set image deployment/despachos-api despachos-api=${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-${{ github.sha }}

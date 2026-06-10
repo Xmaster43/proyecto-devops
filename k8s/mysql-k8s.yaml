@@ -1,0 +1,67 @@
+# 1. SECRETOS: Guarda las contraseñas de forma segura
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+stringData: # stringData permite poner texto plano, K8s lo cifra automáticamente
+  MYSQL_ROOT_PASSWORD: admin123
+  MYSQL_DATABASE: innovatech_db
+  MYSQL_USER: admin
+  MYSQL_PASSWORD: admin123
+
+---
+# 2. ALMACENAMIENTO (PVC): Evita que se borren los datos si el Pod se reinicia
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi # Pide un disco de 5GB a AWS
+
+---
+# 3. SERVICIO DE RED: Le da un "nombre de dominio" interno a la base de datos
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service # ¡Este nombre reemplazará tu antigua IP 10.0.8.89!
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mysql
+
+---
+# 4. DEPLOYMENT: El contenedor de Docker en sí
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        envFrom:
+        - secretRef:
+            name: mysql-secret
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-storage
+        emptyDir: {} # <--- ESTO ES EL CAMBIO CLAVE
