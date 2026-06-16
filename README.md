@@ -1,290 +1,621 @@
-# Proyecto DevOps - Innovatech Chile
+================================================================================
+  PROYECTO DEVOPS - INNOVATECH CHILE
+  Evaluación Parcial N°3: Orquestación y Automatización en la Nube
+================================================================================
 
-Sistema de microservicios containerizado con Docker para gestión de Despachos y Ventas de Innovatech Chile.
+Asignatura: ISY1101 - Introducción a Herramientas DevOps
+Integrantes: Josefa Nuñez, Bastian Gomez, Ivan Hernandez
+Fecha: Junio 2026
 
-##  Descripción del Proyecto
+================================================================================
+DESCRIPCIÓN GENERAL DEL PROYECTO
+================================================================================
 
-Este proyecto implementa una solución DevOps completa con:
-- **2 Microservicios Backend** (Spring Boot): API REST para Despachos y Ventas
-- **1 Frontend** (React + Vite): Interfaz de usuario
-- **Base de Datos**: MySQL 8.0
-- **Orquestación**: Docker Compose
-- **CI/CD**: GitHub Actions (automatización de build y deploy)
+Este proyecto implementa una SOLUCIÓN DEVOPS COMPLETA EN AWS EKS (KUBERNETES) 
+con automatización CI/CD mediante GitHub Actions. Gestiona una aplicación de 
+microservicios para INNOVATECH CHILE (gestión de Despachos y Ventas).
 
-## Arquitectura
+OBJETIVOS CUMPLIDOS:
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    Internet (Public)                 │
-└────────────────────────┬────────────────────────────┘
-                         │
-                    ┌────▼─────┐
-                    │ Frontend  │ (Puerto 3000)
-                    │ (Nginx)   │
-                    └────┬─────┘
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-   ┌────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
-   │ Backend    │ │ Backend     │ │   MySQL     │
-   │ Despachos  │ │ Ventas      │ │   Database  │
-   │ (8081)     │ │ (8082)      │ │ (3306)      │
-   └────────────┘ └─────────────┘ └─────────────┘
-   
-   (Red Interna: innovatech-network)
-```
+✓ Orquestación: Clúster EKS con Deployments y Services
+✓ Automatización: Pipeline CI/CD completo (build → push → deploy)
+✓ Escalabilidad: Replicas y preparación para autoscaling
+✓ Seguridad: Secrets en GitHub, VPC privadas, Security Groups
+✓ Monitoreo: Logs en CloudWatch, métricas en EKS
 
-## Inicio Rápido
+================================================================================
+ARQUITECTURA
+================================================================================
 
-### Requisitos Previos
-- Docker Desktop instalado y ejecutándose
-- Git
-- Mínimo 4GB RAM disponible
+DIAGRAMA DE LA INFRAESTRUCTURA:
 
-### Instalación y Levantamiento
+┌─────────────────────────────────────────────────────────────┐
+│                   AWS Región: US-EAST-1                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                 INTERNET (Público)                    │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+│                         │                                     │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │         Application Load Balancer (ALB)              │   │
+│  │        IP Pública: a985749b1c2114b01bec...          │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+│                         │                                     │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │              EKS KUBERNETES CLUSTER                  │   │
+│  │                                                       │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │   │
+│  │  │   Frontend  │  │  Despachos  │  │   Ventas    │ │   │
+│  │  │   (Nginx)   │  │   Backend   │  │   Backend   │ │   │
+│  │  │  Pod x2     │  │   Pod x2    │  │   Pod x2    │ │   │
+│  │  │  Puerto:80  │  │  Puerto:    │  │   Puerto:   │ │   │
+│  │  │             │  │   8081      │  │    8082     │ │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘ │   │
+│  │        ↓                ↓                 ↓          │   │
+│  │  ┌──────────────────────────────────────────┐       │   │
+│  │  │        MySQL Database (Pod)              │       │   │
+│  │  │     Puerto 3306 (Red Interna)            │       │   │
+│  │  └──────────────────────────────────────────┘       │   │
+│  │                                                       │   │
+│  │  Red Interna: 172.20.0.0/16 (ServiceMesh)          │   │
+│  └───────────────────────────────────────────────────────┘   │
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │           AMAZON ECR (Container Registry)            │   │
+│  │  - 637423587001.dkr.ecr.us-east-1.amazonaws.com    │   │
+│  │  - innovatech-backend:despachos-v1                   │   │
+│  │  - innovatech-backend:ventas-v1                      │   │
+│  │  - innovatech-frontend:v1                            │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │     CloudWatch (Logs & Métricas)                     │   │
+│  │  - /aws/eks/cluster/innovatech-cluster              │   │
+│  │  - CPU, Memory, Network I/O                          │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
 
-1. **Clonar el repositorio**
-```bash
-git clone https://github.com/tu-usuario/proyecto-devops.git
+              ↑
+              │
+    ┌─────────┴──────────┐
+    │   GITHUB ACTIONS   │
+    │   CI/CD Pipeline   │
+    │                    │
+    │ 1. Trigger: push   │
+    │    a branch        │
+    │ 2. Build imagen    │
+    │ 3. Push a ECR      │
+    │ 4. Deploy en EKS   │
+    │    (kubectl)       │
+    └────────────────────┘
+
+================================================================================
+COMPONENTES PRINCIPALES
+================================================================================
+
+1. CLÚSTER EKS (KUBERNETES)
+
+Nombre: innovatech-cluster
+Versión Kubernetes: 1.28+
+Nodos: t3.medium (2-3 nodos)
+VPC: Privada con subredes separadas
+Autoscaling: Habilitado (1-5 nodos)
+
+
+2. DEPLOYMENTS (K8S)
+
+FRONTEND (Nginx + React):
+- Nombre: frontend-despacho
+- Replicas: 2 (Alta disponibilidad)
+- Puerto expuesto: 80
+- Imagen: innovatech-frontend:v1
+- Service: LoadBalancer (acceso público)
+
+BACKEND DESPACHOS:
+- Nombre: despachos-api
+- Replicas: 2
+- Puerto: 8081
+- Imagen: innovatech-backend:despachos-v1
+- Service: ClusterIP (interno)
+
+BACKEND VENTAS:
+- Nombre: ventas-api
+- Replicas: 2
+- Puerto: 8082
+- Imagen: innovatech-backend:ventas-v1
+- Service: ClusterIP (interno)
+
+MYSQL DATABASE:
+- Nombre: mysql-deployment
+- Replicas: 1
+- Puerto: 3306
+- Volumen: PersistentVolume (datos persistentes)
+- Secretos: Credenciales en AWS Secrets Manager
+
+
+3. ECR (ELASTIC CONTAINER REGISTRY)
+
+Todas las imágenes se almacenan en un registro privado:
+
+637423587001.dkr.ecr.us-east-1.amazonaws.com/
+├── innovatech-backend:despachos-v1
+├── innovatech-backend:ventas-v1
+└── innovatech-frontend:v1
+
+
+4. PIPELINE CI/CD (GITHUB ACTIONS)
+
+FLUJO AUTOMÁTICO:
+
+Developer hace push a rama 'deploy'
+    ↓
+GitHub Actions detecta trigger
+    ↓
+Checkout código
+    ↓
+Configure AWS credentials
+    ↓
+Login en Amazon ECR
+    ↓
+Build imagen Docker
+    ↓
+Push imagen a ECR
+    ↓
+Deploy en EKS (kubectl apply)
+    ↓
+Rollback automático si falla
+
+ARCHIVOS WORKFLOW:
+- .github/workflows/deploy-front.yaml (Frontend)
+- .github/workflows/deploy-despachos.yaml (Backend Despachos)
+- .github/workflows/deploy-ventas.yaml (Backend Ventas)
+
+SECRETS NECESARIOS EN GITHUB:
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_SESSION_TOKEN
+AWS_REGION (us-east-1)
+ECR_REGISTRY
+ECR_REPO_URL_FRONTEND
+ECR_REPO_URL_BACKEND_DESPACHOS
+ECR_REPO_URL_BACKEND_VENTAS
+EC2_FRONTEND_INSTANCE_ID
+
+================================================================================
+CONFIGURACIÓN DE AUTOSCALING (HPA)
+================================================================================
+
+HORIZONTAL POD AUTOSCALER (HPA)
+
+Aunque en este proyecto usamos replicas estáticas (2), la configuración HPA 
+permitiría escalar automáticamente según demanda.
+
+CONFIGURACIÓN RECOMENDADA:
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: despachos-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: despachos-api
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+JUSTIFICACIÓN DE VALORES:
+- Min Replicas: 2 (alta disponibilidad, mínimo dos instancias)
+- Max Replicas: 5 (evita costos excesivos en AWS)
+- CPU Threshold: 70% (escalado agresivo cuando CPU sube)
+- Memory Threshold: 80% (protege contra Out of Memory)
+
+APLICAR HPA:
+kubectl apply -f k8s/hpa-config.yaml
+kubectl get hpa -w  (monitorear cambios)
+
+================================================================================
+INSTALACIÓN Y DESPLIEGUE
+================================================================================
+
+PREREQUISITOS:
+
+# AWS CLI configurado
+aws configure
+
+# kubectl instalado
+kubectl version --client
+
+# Docker instalado (para testing local)
+docker --version
+
+# Git
+git clone https://github.com/Xmaster43/proyecto-devops.git
 cd proyecto-devops
-```
 
-2. **Levantar todos los servicios**
-```bash
-docker-compose up -d
-```
 
-3. **Esperar a que los servicios inicien** (~30 segundos)
-```bash
-docker-compose ps
-```
+PASOS PARA DESPLEGAR:
 
-4. **Verificar que todo funciona**
-- Frontend: http://localhost:3000
-- Backend Despachos: http://localhost:8081
-- Backend Ventas: http://localhost:8082
-- MySQL: localhost:3306
+PASO 1: CREAR/ACCEDER AL CLÚSTER EKS
 
-### Detener los servicios
-```bash
-docker-compose down
-```
+# Actualizar kubeconfig
+aws eks update-kubeconfig \
+  --region us-east-1 \
+  --name innovatech-cluster
 
-## Estructura del Proyecto
+# Verificar conexión
+kubectl get nodes
 
-```
-proyecto-devops/
-├── back-Despachos_SpringBoot/
-│   └── Springboot-API-REST-DESPACHO/
-│       ├── Dockerfile
-│       ├── README.md
-│       ├── pom.xml
-│       ├── src/
-│       └── application.properties
-├── back-Ventas_SpringBoot/
-│   └── Springboot-API-REST/
-│       ├── Dockerfile
-│       ├── README.md
-│       ├── pom.xml
-│       ├── src/
-│       └── application.properties
-├── front_despacho/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   ├── README.md
-│   ├── package.json
-│   ├── vite.config.js
-│   └── src/
-├── docker-compose.yml
-└── README.md (este archivo)
-```
+Salida esperada:
+NAME                         STATUS   ROLES    
+ip-172-31-x-x.ec2.internal  Ready    <none>
+ip-172-31-y-y.ec2.internal  Ready    <none>
 
-## Docker & Docker Compose
 
-### Dockerfiles (Multi-Stage)
+PASO 2: CREAR SECRETS EN KUBERNETES
 
-Cada backend usa **multi-stage build** para optimizar:
-- **Stage 1 (builder)**: Compila con Maven (pesado)
-- **Stage 2 (runtime)**: Ejecuta JAR con JRE (ligero)
+# Crear secret para credenciales MySQL
+kubectl create secret generic mysql-secret \
+  --from-literal=MYSQL_USER=admin \
+  --from-literal=MYSQL_PASSWORD=admin123 \
+  --from-literal=MYSQL_ROOT_PASSWORD=root123
 
-**Ventajas:**
-- Imágenes más pequeñas (~200MB vs 1GB)
-- Mayor seguridad (sin herramientas de compilación en producción)
-- Mejor rendimiento de despliegue
+# Verificar
+kubectl get secrets
 
-### Seguridad en Dockerfiles
 
--  Usuario no-root (`appuser`) - evita ataques de escalamiento de privilegios
--  Imágenes base slim (alpine) - menos superficie de ataque
--  Health checks - monitoreo automático de servicios
+PASO 3: DESPLEGAR SERVICIOS
 
-### Variables de Entorno
+# Aplicar todos los manifiestos K8s
+kubectl apply -f k8s/mysql-k8s.yaml
+sleep 10
+kubectl apply -f k8s/backends-k8s.yaml
+sleep 10
+kubectl apply -f k8s/frontend-k8s.yaml
 
-Por defecto (desarrollo local):
-```
-MYSQL_DATABASE: innovatech_db
-MYSQL_USER: admin
-MYSQL_PASSWORD: admin123
-DB_ENDPOINT: mysql
-DB_PORT: 3306
-```
+# Verificar que los pods están corriendo
+kubectl get pods -w
+# Esperar a que todos muestren "Running"
 
-En **AWS RDS** (producción):
-```
-DB_ENDPOINT: mydb.xxxxx.rds.amazonaws.com
-DB_PORT: 3306
-(Especificar en GitHub Secrets o variables de entorno)
-```
+# Verificar servicios
+kubectl get svc
 
-## Persistencia de Datos
 
-### Volúmenes Docker
+PASO 4: OBTENER URL DE ACCESO
 
-```yaml
-volumes:
-  mysql_data:
-    driver: local
-    mount_path: /var/lib/mysql
-```
+# Obtener IP/URL del LoadBalancer
+kubectl get svc frontend-despacho -o wide
 
-**¿Qué sucede si reinicio un contenedor?**
-- Los datos persisten en el volumen `mysql_data`
-- La base de datos NO se pierde
+# La URL será algo como:
+# a985749b1c2114b01bec52fec2bebb3f-75497823.us-east-1.elb.amazonaws.com
 
-##  Comunicación entre Servicios
+# Acceder en navegador:
+# http://a985749b1c2114b01bec52fec2bebb3f-75497823.us-east-1.elb.amazonaws.com
 
-### Red Interna (innovatech-network)
+================================================================================
+MONITOREO Y MÉTRICAS
+================================================================================
 
-Los servicios se comunican por nombre DNS interno:
+CLOUDWATCH LOGS:
 
-```
-Frontend → Backend-Despachos: http://backend-despachos:8080
-Frontend → Backend-Ventas:    http://backend-ventas:8080
-Backends → MySQL:             jdbc:mysql://mysql:3306/innovatech_db
-```
+# Ver logs del Frontend
+kubectl logs -f deployment/frontend-despacho
 
-### Puertos Mapeados
+# Ver logs de Despachos
+kubectl logs -f deployment/despachos-api
 
-| Servicio | Puerto Interno | Puerto Externo |
-|----------|----------------|----------------|
-| Frontend | 80 (Nginx) | 3000 |
-| Backend Despachos | 8080 | 8081 |
-| Backend Ventas | 8080 | 8082 |
-| MySQL | 3306 | 3306 |
+# Ver logs de Ventas
+kubectl logs -f deployment/ventas-api
 
-## Comandos Útiles
+# Ver logs de MySQL
+kubectl logs -f deployment/mysql-deployment
 
-```bash
-# Ver estado de contenedores
-docker-compose ps
 
-# Ver logs de un servicio
-docker-compose logs backend-despachos
-docker-compose logs -f mysql  # -f = seguir en tiempo real
+MÉTRICAS DE CPU Y MEMORIA:
 
-# Ejecutar comando dentro de un contenedor
-docker-compose exec backend-despachos bash
+# Ver uso de recursos en tiempo real
+kubectl top nodes
+kubectl top pods
 
-# Reconstruir imágenes (si cambias código)
-docker-compose build
+Salida esperada:
+NAME                       CPU(cores)   MEMORY(Mi)
+despachos-api-xxxxx        45m          256Mi
+ventas-api-xxxxx           38m          220Mi
+frontend-despacho-xxxxx    12m          64Mi
+mysql-deployment-xxxxx     120m         512Mi
 
-# Reiniciar un servicio
-docker-compose restart backend-ventas
 
-# Limpiar todo (volúmenes, imágenes, contenedores)
-docker-compose down -v
-```
+DASHBOARD KUBERNETES:
 
-## Seguridad
+# Iniciar proxy para acceder al dashboard
+kubectl proxy
 
-### Mejores Prácticas Implementadas
+# Acceder en navegador:
+# http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
 
-1. **Contenedores sin root**: Todos usan usuario `appuser`
-2. **Imágenes minimales**: Alpine/Slim para reducir vulnerabilidades
-3. **Health checks**: Monitoreo automático de servicios
-4. **Redes internas**: Base de datos NO expuesta a Internet
-5. **Secrets en GitHub**: Credenciales AWS encriptadas
+================================================================================
+FLUJO CI/CD COMPLETO
+================================================================================
 
-## CI/CD con GitHub Actions
+EJEMPLO: DESPLEGAR UN CAMBIO EN BACKEND DESPACHOS
 
-### Pipeline (cuando esté configurado)
+PASO 1: Hacer cambio en código
+vi back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO/src/main/java/...
 
-```
-1. Push a rama 'deploy'
-   ↓
-2. GitHub Actions: Compilar + Crear imágenes Docker
-   ↓
-3. Publicar en Docker Hub
-   ↓
-4. Conectar a EC2 por SSH
-   ↓
-5. Descargar imágenes nuevas
-   ↓
-6. Ejecutar docker-compose up
-   ↓
-7. Sistema actualizado en producción
-```
+PASO 2: Commit con mensaje descriptivo
+git add .
+git commit -m "feat: Agregar endpoint de validación de despachos"
 
-## Testing Local
+PASO 3: Push a rama 'deploy'
+git push origin deploy
 
-### Verificar que Frontend se conecta a Backend
+PASO 4: GitHub Actions se dispara automáticamente:
+- Compila código
+- Ejecuta tests
+- Build imagen Docker
+- Push a ECR
+- Deploy en EKS
 
-```bash
-# 1. Ir a http://localhost:3000 en el navegador
-# 2. Abrir DevTools (F12)
-# 3. Ir a pestaña Network
-# 4. Realizar una acción que haga request al backend
-# 5. Verificar que la request llega a http://backend-despachos:8080 o http://backend-ventas:8080
-```
+PASO 5: Monitorear progreso
+kubectl get rollout status deployment/despachos-api -w
 
-### Verificar conectividad de Backend a MySQL
+PASO 6: Verificar que el cambio está vivo
+curl http://<ALB-URL>:8081/api/despachos
 
-```bash
-docker-compose exec backend-despachos bash
-# Dentro del contenedor:
-curl http://localhost:8080/health  # o tu endpoint de health check
-```
+================================================================================
+SEGURIDAD IMPLEMENTADA
+================================================================================
 
-## Documentación Adicional
+SECRETS Y CREDENCIALES:
+✓ MySQL password en Kubernetes Secrets (no en código)
+✓ AWS credentials en GitHub Secrets (cifradas)
+✓ IAM roles con mínimo privilegio
+✓ VPC privada para bases de datos
 
-- [Backend Despachos](./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO/README.md)
-- [Backend Ventas](./back-Ventas_SpringBoot/Springboot-API-REST/README.md)
-- [Frontend](./front_despacho/README.md)
 
-## Equipo
+NETWORKING:
+✓ Security Groups: Frontend abierto (80), Backend cerrado
+✓ NACLs: Bloqueo de tráfico no autorizado
+✓ DNS interno: Nombres de servicios (mysql-service, despachos-service)
 
-- **Integrante 1**: Responsable de Dockerization y CI/CD
-- **Integrante 2**: Responsable de Arquitectura y Presentación
 
-## Cronograma
+RBAC (ROLE-BASED ACCESS CONTROL):
+Los pods solo pueden:
+- Leer secrets de MySQL
+- Conectarse entre servicios
+- Acceder a volúmenes asignados
 
-- **Semana X**: Entrega del Encargo (Dockerfiles, docker-compose, GitHub Actions)
-- **Semana X+1**: Presentación técnica y defensa
+================================================================================
+PROBLEMAS ENCONTRADOS Y SOLUCIONES
+================================================================================
 
-## Próximos Pasos
+PROBLEMA 1: PODS EN CRASHLOOPBACKOFF
 
-1. Dockerizar Frontend y Backends
-2. Configurar docker-compose
-3. Implementar GitHub Actions workflow
-4. Desplegar en AWS EC2
-5. Presentación técnica
+Causa: Credenciales MySQL incorrectas
 
-##  Preguntas Frecuentes
+Solución:
+# Verificar secret
+kubectl get secret mysql-secret -o yaml
 
-**P: ¿Por qué multi-stage en Dockerfile?**
-A: Reduce el tamaño final de la imagen eliminando herramientas de compilación que no necesita en producción.
+# Revisar logs
+kubectl logs deployment/despachos-api --previous
 
-**P: ¿Qué pasa si MySQL falla?**
-A: Los backends reintentan conectarse automáticamente gracias a `depends_on` y health checks.
+# Actualizar secret
+kubectl delete secret mysql-secret
+kubectl create secret generic mysql-secret \
+  --from-literal=MYSQL_USER=admin \
+  --from-literal=MYSQL_PASSWORD=admin123
 
-**P: ¿Cómo agrego una nueva variable de entorno?**
-A: Edita `docker-compose.yml` en la sección `environment:` del servicio y redeploy.
 
-##  Soporte
+PROBLEMA 2: FRONTEND NO PUEDE CONECTAR CON BACKENDS
 
-Para dudas técnicas, contactar a los integrantes del equipo o revisar la [documentación oficial de Docker](https://docs.docker.com/).
+Causa: URL incorrecta en environment
 
----
+Solución:
+En frontend-k8s.yaml, usar nombres de servicios internos:
 
-**Última actualización**: Mayo 2026
-**Versión**: 1.0
+env:
+  - name: REACT_APP_API_DESPACHOS
+    value: "http://despachos-service:8081"
+  - name: REACT_APP_API_VENTAS
+    value: "http://ventas-service:8082"
+
+
+PROBLEMA 3: ESPACIO EN DISCO AGOTADO EN EC2
+
+Causa: Imágenes Docker antiguas acumuladas
+
+Solución:
+En el workflow, agregar:
+
+- name: Cleanup images
+  run: |
+    docker image prune -af
+    docker container prune -f
+
+================================================================================
+CHECKLIST DE VERIFICACIÓN
+================================================================================
+
+Antes de la presentación, verificar:
+
+[ ] Clúster EKS está activo y saludable
+    kubectl get nodes
+    kubectl get pods -A
+
+[ ] Todos los pods están en estado "Running"
+    kubectl get pods
+
+[ ] Frontend es accesible por URL pública
+    curl http://<ALB-URL>
+
+[ ] Backends responden a requests
+    curl http://<ALB-URL>:8081/api/despachos
+    curl http://<ALB-URL>:8082/api/ventas
+
+[ ] Logs están siendo registrados
+    kubectl logs deployment/despachos-api
+
+[ ] GitHub Actions pipeline completa exitosamente
+    Ir a: https://github.com/Xmaster43/proyecto-devops/actions
+    Ver últimas ejecuciones (deben estar en verde ✓)
+
+[ ] Commits tienen mensajes descriptivos
+    git log --oneline | head -20
+
+================================================================================
+EVIDENCIA DE EJECUCIÓN
+================================================================================
+
+CAPTURA DE PODS CORRIENDO:
+
+$ kubectl get pods
+NAME                                    READY   STATUS    RESTARTS   AGE
+despachos-api-c5b45f6c6-7t6fq           1/1     Running   0          3m25s
+despachos-api-c5b45f6c6-hxkwr           1/1     Running   0          3m13s
+frontend-despacho-6bd9b77c-j9v4h        1/1     Running   0          3m24s
+frontend-despacho-6bd9b77c-xqjrp        1/1     Running   0          3m21s
+mysql-deployment-74d8b4b9df-9vwdw       1/1     Running   0          3m23s
+ventas-api-66c54764cd-6djrr             1/1     Running   0          3m26s
+ventas-api-66c54764cd-qmgpw             1/1     Running   0          3m26s
+
+
+CAPTURA DE GITHUB ACTIONS:
+
+✓ deploy-front.yaml (35s)
+✓ deploy-despachos.yaml (55s)
+✓ deploy-ventas.yaml (1m 16s)
+
+
+
+================================================================================
+CONCEPTOS DEVOPS APLICADOS
+================================================================================
+
+1. INFRASTRUCTURE AS CODE (IaC)
+
+- Kubernetes manifests (YAML files)
+- Docker multi-stage builds
+- AWS CloudFormation (para crear EKS)
+
+Ventajas:
+- Reproducible en cualquier entorno
+- Versionable en Git
+- Fácil de compartir entre equipos
+
+
+2. CONTINUOUS INTEGRATION (CI)
+
+- GitHub Actions detecta cambios
+- Automatic build de imágenes
+- Push a registry privado (ECR)
+
+Ventajas:
+- Builds consistentes
+- Early detection de errores
+- Automatización de testing
+
+
+3. CONTINUOUS DEPLOYMENT (CD)
+
+- Automatic deploy a EKS
+- Rollout updates sin downtime
+- Rollback automático si falla
+
+Ventajas:
+- Releases rápidas
+- Cero downtime
+- Recuperación automática
+
+
+4. MICROSERVICIOS
+
+- Frontend independiente
+- 2 backends con responsabilidades distintas
+- Comunicación vía DNS interno
+
+Ventajas:
+- Escalabilidad selectiva
+- Equipos independientes
+- Despliegues aislados
+
+
+5. ALTA DISPONIBILIDAD
+
+- Múltiples replicas por servicio
+- Load balancing automático
+- Healthchecks y auto-recovery
+
+Ventajas:
+- Tolerancia a fallos
+- Uptime 99.9%+
+- Escalabilidad horizontal
+
+
+6. SEGURIDAD
+
+- Secrets cifrados
+- RBAC en Kubernetes
+- VPC privada
+- Security Groups
+
+Ventajas:
+- Credenciales protegidas
+- Acceso basado en roles
+- Tráfico controlado
+
+================================================================================
+REFERENCIAS Y DOCUMENTACIÓN
+================================================================================
+
+- AWS EKS Documentation:
+  https://docs.aws.amazon.com/eks/
+
+- Kubernetes Official Docs:
+  https://kubernetes.io/docs/
+
+- GitHub Actions Docs:
+  https://docs.github.com/en/actions
+
+- Docker Best Practices:
+  https://docs.docker.com/develop/dev-best-practices/
+
+- Helm Package Manager:
+  https://helm.sh/
+
+================================================================================
+CONTRIBUYENTES
+================================================================================
+
+- Josefa Nuñez         - Arquitectura EKS y Kubernetes
+- Bastian Gomez       - Pipeline CI/CD y GitHub Actions
+- Ivan Hernandez      - Dockerización y optimización de imágenes
+
+
+================================================================================
+INFORMACIÓN FINAL
+================================================================================
+
+Última actualización: Junio 12, 2026
+Estado:Producción
+Versión: 1.0.0
+
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================
