@@ -19,6 +19,9 @@ spec:
       - name: frontend
         # NOTA: Tu imagen con el nginx.conf actualizado
         image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:v1
+        resources:
+          requests:
+            cpu: "100m" # Esto es necesario para el HPA
         ports:
         - containerPort: 80
 

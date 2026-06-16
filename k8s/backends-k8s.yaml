@@ -17,7 +17,6 @@ spec:
     spec:
       containers:
       - name: ventas-api
-        # NOTA: Aquí pondrás la URL real de tu ECR cuando lo despliegues
         image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-backend:ventas-v1
         ports:
         - containerPort: 8082
