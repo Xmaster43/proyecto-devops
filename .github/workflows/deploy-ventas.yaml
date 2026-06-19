@@ -1,4 +1,4 @@
-name: CI/CD - Backend Ventas
+name: CI/CD - Backend Ventas (Kubernetes)
 
 on:
   push:
@@ -24,20 +24,16 @@ jobs:
       - name: Login en Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build y Push Imagen (Etiqueta ventas-v1)
+      # Construimos usando el prefijo ventas- para no borrar la imagen de ventas
+      - name: Build y Push Imagen
         run: |
-          docker build -t ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-v1 ./back-Ventas_SpringBoot/Springboot-API-REST
-          docker push ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-v1
+          docker build -t ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-${{ github.sha }} ./back-Ventas_SpringBoot/Springboot-API-REST
+          docker push ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-${{ github.sha }}
 
-      - name: Desplegar en EC2 Backend vía SSM
+      - name: Desplegar en Amazon EKS
         run: |
-          aws ssm send-command \
-            --instance-ids ${{ secrets.EC2_BACKEND_INSTANCE_ID }} \
-            --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":[
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-              "docker pull ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-v1",
-              "docker stop ventas-api || true",
-              "docker rm ventas-api || true",
-              "docker run -d --name ventas-api -p 8082:8082 -e SPRING_DATASOURCE_URL=jdbc:mysql://10.0.8.89:3306/innovatech_db -e SPRING_DATASOURCE_USERNAME=admin -e SPRING_DATASOURCE_PASSWORD=admin123 ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-v1"
-            ]}'
+          # Autenticación con el clúster
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+          
+          # Actualizar el deployment de Ventas
+          kubectl set image deployment/ventas-api ventas-api=${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-${{ github.sha }}

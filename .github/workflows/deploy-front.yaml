@@ -1,4 +1,4 @@
-name: CI/CD - Frontend
+name: CI/CD - Frontend (Kubernetes)
 
 on:
   push:
@@ -24,20 +24,16 @@ jobs:
       - name: Login en Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build y Push Imagen Frontend (Etiqueta v1)
+      # El frontend tiene su propio ECR, el SHA solo es suficiente
+      - name: Build y Push Imagen
         run: |
-          docker build -t ${{ secrets.ECR_REPO_URL_FRONTEND }}:v1 ./front_despacho
-          docker push ${{ secrets.ECR_REPO_URL_FRONTEND }}:v1
+          docker build -t ${{ secrets.ECR_REPO_URL_FRONTEND }}:${{ github.sha }} ./front_despacho
+          docker push ${{ secrets.ECR_REPO_URL_FRONTEND }}:${{ github.sha }}
 
-      - name: Desplegar en EC2 Frontend vía SSM
+      - name: Desplegar en Amazon EKS
         run: |
-          aws ssm send-command \
-            --instance-ids ${{ secrets.EC2_FRONTEND_INSTANCE_ID }} \
-            --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":[
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-              "docker pull ${{ secrets.ECR_REPO_URL_FRONTEND }}:v1",
-              "docker stop front-despacho || true",
-              "docker rm front-despacho || true",
-              "docker run -d --name front-despacho -p 80:80 ${{ secrets.ECR_REPO_URL_FRONTEND }}:v1"
-            ]}'
+          # Autenticación con el clúster
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+          
+          # Actualizar el deployment del Frontend
+          kubectl set image deployment/frontend-despacho frontend=${{ secrets.ECR_REPO_URL_FRONTEND }}:${{ github.sha }}

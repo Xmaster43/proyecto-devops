@@ -1,0 +1,41 @@
+# ==========================================
+# DEPLOYMENT DEL FRONTEND
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-despacho
+spec:
+  replicas: 2 # 2 copias de tu página web para soportar más tráfico
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:v1
+        resources:
+          requests:
+            cpu: "100m" 
+        ports:
+        - containerPort: 80
+
+---
+# ==========================================
+# SERVICIO: EXPOSICIÓN A INTERNET
+# ==========================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: LoadBalancer # Exponer el servicio a Internet
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: frontend
