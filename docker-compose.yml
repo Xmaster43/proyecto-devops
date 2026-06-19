@@ -16,7 +16,7 @@ services:
     networks:
       - innovatech2-network
 
-  backend-despachos:
+  despachos-service:
     build:
       context: ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
       dockerfile: Dockerfile
@@ -33,7 +33,7 @@ services:
     networks:
       - innovatech2-network
 
-  backend-ventas:
+  ventas-service:
     build:
       context: ./back-Ventas_SpringBoot/Springboot-API-REST
       dockerfile: Dockerfile
@@ -58,7 +58,8 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend-despachos
+      - despachos-service
+      - ventas-service
     networks:
       - innovatech2-network
 

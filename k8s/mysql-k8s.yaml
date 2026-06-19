@@ -11,7 +11,7 @@ stringData: # stringData permite poner texto plano, K8s lo cifra automáticament
   MYSQL_PASSWORD: admin123
 
 ---
-# 2. ALMACENAMIENTO (PVC): Evita que se borren los datos si el Pod se reinicia
+# 2. ALMACENAMIENTO (PVC)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -28,7 +28,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql-service # ¡Este nombre reemplazará tu antigua IP 10.0.8.89!
+  name: mysql-service 
 spec:
   ports:
     - port: 3306

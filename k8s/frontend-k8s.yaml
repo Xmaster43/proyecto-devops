@@ -17,11 +17,10 @@ spec:
     spec:
       containers:
       - name: frontend
-        # NOTA: Tu imagen con el nginx.conf actualizado
         image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:v1
         resources:
           requests:
-            cpu: "100m" # Esto es necesario para el HPA
+            cpu: "100m" 
         ports:
         - containerPort: 80
 
@@ -34,7 +33,7 @@ kind: Service
 metadata:
   name: frontend-service
 spec:
-  type: LoadBalancer # ¡Esto es clave! Le pide a AWS que cree un ELB (Elastic Load Balancer) público.
+  type: LoadBalancer # Exponer el servicio a Internet
   ports:
     - port: 80
       targetPort: 80
