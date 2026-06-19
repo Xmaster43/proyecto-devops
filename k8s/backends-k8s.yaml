@@ -20,6 +20,9 @@ spec:
         image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-backend:ventas-v1
         ports:
         - containerPort: 8082
+        resources:
+          requests:
+            cpu: "250m"
         env:
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:mysql://mysql-service:3306/innovatech_db"
@@ -67,6 +70,9 @@ spec:
       containers:
       - name: despachos-api
         image: 637423587001.dkr.ecr.us-east-1.amazonaws.com/innovatech-backend:despachos-v1
+        resources:
+          requests:
+            cpu: "250m"
         ports:
         - containerPort: 8081
         env:
